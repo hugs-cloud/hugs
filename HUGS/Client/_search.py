@@ -33,7 +33,7 @@ class Search:
 
         self._results = response
 
-        return response
+        # return response
 
     def results(self):
         """ Return the results in an easy to read format when printed to screen
