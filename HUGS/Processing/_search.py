@@ -276,22 +276,18 @@ def append_keys(results, search_key, keys):
     return results
 
 
-def lookup_gas_datasources(lookup_dict, gas_data, source_name, source_id):
+def lookup_gas_datasources(lookup_dict, gas_data, source_name):
     """ Check if the passed data exists in the lookup dict
 
         Args:
             lookup_dict (dict): Dictionary to search for exisiting Datasources
             gas_data (list): Gas data to process
             source_name (str): Name of course
-            source_id (str, default=None): UUID of source. Not currently implemented.
         Returns:
             dict: source_name: Datasource UUID (key: value)
     """
     # If we already have data from these datasources then return that UUID
     # otherwise return False
-    if source_id is not None:
-        raise NotImplementedError()
-
     results = {}
     for species in gas_data:
         datasource_name = source_name + "_" + species

@@ -69,7 +69,9 @@ class CRDS(BaseModule):
         crds_key = f"{CRDS._root}/uuid/{CRDS._uuid}"
 
         self._stored = True
-        ObjectStore.set_object_from_json(bucket=bucket, key=crds_key, data=self.to_data())
+        ObjectStore.set_object_from_json(
+            bucket=bucket, key=crds_key, data=self.to_data()
+        )
 
     @staticmethod
     def read_folder(folder_path):
@@ -100,14 +102,24 @@ class CRDS(BaseModule):
         return results
 
     @staticmethod
-    def read_file(data_filepath, source_name=None, site=None, source_id=None, overwrite=False):
+    def read_file(
+        data_filepath,
+        site=None,
+        instrument=None,
+        network=None,
+        inlet=None,
+        source_name=None,
+        overwrite=False,
+    ):
         """ Creates a CRDS object holding data stored within Datasources
 
             Args:
                 filepath (str): Path of file to load
-                source_name (str, default=None): Name of source
                 site (str, default=None): Name of site
-                source_id (str, default=None): Source's unique ID
+                instrument (str, default=None): Instrument name
+                network (str, default=None): Network name
+                inlet (str, default=None): Inlet height
+                source_name (str, default=None): Name of source
                 overwrite (bool, default=False): If True overwrite any data currently stored for this date range
             Returns:
                 None
@@ -134,10 +146,10 @@ class CRDS(BaseModule):
 
         filename = data_filepath.name
 
-        if not source_name:
+        if source_name is None:
             source_name = data_filepath.stem
 
-        if not site:
+        if site is None:
             site = source_name.split(".")[0]
 
         gas_data = crds.read_data(data_filepath=data_filepath, site=site)
@@ -153,7 +165,6 @@ class CRDS(BaseModule):
             lookup_dict=crds._datasource_names,
             gas_data=gas_data,
             source_name=source_name,
-            source_id=source_id,
         )
 
         # Create Datasources, save them to the object store and get their UUIDs
@@ -186,7 +197,6 @@ class CRDS(BaseModule):
         """
         from datetime import datetime
         from pandas import RangeIndex, read_csv, NaT
-        from HUGS.Processing import read_metadata
 
         # Function to parse the datetime format found in the datafile
         def parse_date(date):
@@ -214,7 +224,9 @@ class CRDS(BaseModule):
         inlet = source_name.split(".")[3]
 
         if "m" not in inlet.lower():
-            raise TypeError("No inlet found, we expect filenames such as: bsd.picarro.1minute.108m.dat")
+            raise TypeError(
+                "No inlet found, we expect filenames such as: bsd.picarro.1minute.108m.dat"
+            )
 
         # instrument = [f.split(".")[1] for f in data_files]
         # instrument = source_name.split(".")[1]
@@ -231,13 +243,15 @@ class CRDS(BaseModule):
 
         header_rows = 2
         # Create metadata here
-        metadata = read_metadata(filepath=data_filepath, data=data, data_type="CRDS")
+        metadata = self.read_metadata(filepath=data_filepath, data=data)
         # This dictionary is used to store the gas data and its associated metadata
         combined_data = {}
 
         for n in range(n_gases):
             # Slice the columns
-            gas_data = data.iloc[:, skip_cols + n * n_cols : skip_cols + (n + 1) * n_cols]
+            gas_data = data.iloc[
+                :, skip_cols + n * n_cols : skip_cols + (n + 1) * n_cols
+            ]
 
             # Reset the column numbers
             gas_data.columns = RangeIndex(gas_data.columns.size)
@@ -275,6 +289,50 @@ class CRDS(BaseModule):
 
         return combined_data
 
+    def read_metadata(self, filename, data):
+        """ Parse CRDS files and create a metadata dict
+
+            Args:
+                filename (str): Name of data file
+                data (Pandas.DataFrame): Raw data
+            Returns:
+                dict: Dictionary containing metadata
+        """
+        # Find gas measured and port used
+        type_meas = data[2][2]
+        port = data[3][2]
+
+        # Split the filename to get the site and resolution
+        split_filename = filename.split(".")
+
+        if len(split_filename) < 4:
+            raise ValueError(
+                "Error reading metadata from filename. The expected format is \
+                {site}.{instrument}.{time resolution}.{height}.dat"
+            )
+
+        site = split_filename[0]
+        instrument = split_filename[1]
+        resolution_str = split_filename[2]
+        inlet = split_filename[3]
+
+        if resolution_str == "1minute":
+            resolution = "1_minute"
+        elif resolution_str == "hourly":
+            resolution = "1_hour"
+        else:
+            resolution = "Not read"
+
+        metadata = {}
+        metadata["site"] = site
+        metadata["instrument"] = instrument
+        metadata["time_resolution"] = resolution
+        metadata["inlet"] = inlet
+        metadata["port"] = port
+        metadata["type"] = type_meas
+
+        return metadata
+
     def assign_attributes(self, data, site, network=None):
         """ Assign attributes to the data we've processed
 
@@ -300,17 +358,6 @@ class CRDS(BaseModule):
 
         return data
 
-    def get_rank(self, uuid, daterange):
-        """ Get the rank of the Datasource with the passed uuid for the given daterange
-
-            Args:
-                uuid (str)
-                daterange (str)
-            Returns:
-                dict: Dictionary of rank data
-        """
-        pass
-
     def set_rank(self, uuid, rank, daterange):
         """ Set the rank of a Datasource associated with this object.
 
@@ -331,7 +378,9 @@ class CRDS(BaseModule):
         from HUGS.Util import daterange_from_str
 
         if not 0 <= int(rank) <= 10:
-            raise TypeError("Rank can only take values 0 (for unranked) to 10. Where 1 is the highest rank.")
+            raise TypeError(
+                "Rank can only take values 0 (for unranked) to 10. Where 1 is the highest rank."
+            )
 
         if not isinstance(daterange, list):
             daterange = [daterange]
@@ -349,8 +398,10 @@ class CRDS(BaseModule):
 
                         intersection = daterange_obj.intersection(e)
                         if len(intersection) > 0 and int(existing_rank) != int(rank):
-                            raise ValueError(f"This datasource has already got the rank {existing_rank} for dates that overlap the ones given. \
-                                                Overlapping dates are {intersection}")
+                            raise ValueError(
+                                f"This datasource has already got the rank {existing_rank} for dates that overlap the ones given. \
+                                                Overlapping dates are {intersection}"
+                            )
         except KeyError:
             pass
 
