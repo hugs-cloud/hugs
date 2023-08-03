@@ -20,9 +20,7 @@ The processed data is stored within a cloud object store which allows for large 
 
 ### Analysis
 
-Using notebooks hosted on our [JupyterHub](https://hub.hugs-cloud.com) it is possible to query the object store and analyse data within the cloud. This allows analysis and processing of large datasets on any computational device as all processing is done on scalable cloud instances.
-
-![Jupyter notebook analysis](https://hugs-cloud.com/assets/images/HUGS_notebook_interface.jpg)
+Using notebooks hosted on our JupyterHub it is possible to query the object store and analyse data within the cloud. This allows analysis and processing of large datasets on any computational device as all processing is done on scalable cloud instances.
 
 ### Compliance
 
@@ -30,7 +28,7 @@ We ensure data stored on the platform can be exported as [CF compliant](http://c
 
 ### Cloud Hosted
 
-Currently the HUGS platform can be accessed through our [JupyterHub](https://hub.hugs-cloud.com). To register for an account please fill out our [registration form](https://hugs-cloud.com/registration/). 
+Currently the HUGS platform can be accessed through our JupyterHub.
 
 ### Open-source technologies
 
